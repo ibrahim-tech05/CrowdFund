@@ -1,5 +1,7 @@
 const User = require("../models/User");
+const Fundraiser = require("../models/Fundraiser");
 const jwt = require("jsonwebtoken");
+const Backer = require("../models/Backer")
 
 // Register a new user
 const register = async (req, res) => {
@@ -21,13 +23,39 @@ const register = async (req, res) => {
     const user = new User({ name, email, password, role });
     await user.save();
 
+    // If the role is "fundraiser", create a fundraiser profile
+    if (role === "fundraiser") {
+      const fundraiser = new Fundraiser({
+        email,
+        organizationName: name, // Use the user's name as the organization name by default
+        mission: "", // Default empty mission
+        website: "", // Default empty website
+        phone: "", // Default empty phone
+        address: "", // Default empty address
+        profilePicture: "", // Default empty profile picture
+        totalFundsRaised: 0, // Default total funds raised
+      });
+      await fundraiser.save();
+    }
+    if (role === "backer") {
+      const backer = new Backer({
+        email,
+        name,
+        profilePicture:"",
+        totalDonations:0,
+        bio:"",
+        phone:"",
+        address:""
+      })
+      await backer.save();
+    }
+
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error registering user", error });
   }
 };
 
-// Login a user
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -45,11 +73,19 @@ const login = async (req, res) => {
     }
 
     // Generate a JWT token
-    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "1h",
-    });
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
 
-    res.status(200).json({ message: "Login successful", token, role: user.role });
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      role: user.role,
+      email: user.email,
+      name:user.name
+    });
   } catch (error) {
     res.status(500).json({ message: "Error logging in", error });
   }

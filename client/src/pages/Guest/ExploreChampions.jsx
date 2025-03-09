@@ -1,166 +1,122 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import CampaignCard from "../../components/CampaignCard";
 import SearchBar from "../../components/SearchBar";
-import Footer from "../../components/Footer";
+import CircleLoader from "../../components/CircleLoader";
+import { getCampaigns, toggleBookmark } from "../../api/campaign";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import ReactDOM from "react-dom";
 
 const ExploreChampions = () => {
-  // Sample campaign data (can be fetched from an API)
-  const [campaigns, setCampaigns] = useState([
-    {
-      id: 1,
-      title: "Education for All",
-      image: "https://via.placeholder.com/400x200",
-      progress: 60,
-      goal: 5000,
-      type: "Education",
-      isBookmarked: false,
-    },
-    {
-      id: 2,
-      title: "Clean Water Initiative",
-      image: "https://via.placeholder.com/400x200",
-      progress: 30,
-      goal: 10000,
-      type: "Environment",
-      isBookmarked: false,
-    },
-    {
-      id: 3,
-      title: "Tech for Good",
-      image: "https://via.placeholder.com/400x200",
-      progress: 80,
-      goal: 8000,
-      type: "Technology",
-      isBookmarked: false,
-    },
-    {
-      id: 4,
-      title: "Women Empowerment",
-      image: "https://via.placeholder.com/400x200",
-      progress: 50,
-      goal: 15000,
-      type: "Social",
-      isBookmarked: false,
-    },
-    {
-      id: 5,
-      title: "Animal Rescue",
-      image: "https://via.placeholder.com/400x200",
-      progress: 70,
-      goal: 12000,
-      type: "Environment",
-      isBookmarked: false,
-    },
-    {
-      id: 6,
-      title: "Disaster Relief",
-      image: "https://via.placeholder.com/400x200",
-      progress: 40,
-      goal: 20000,
-      type: "Social",
-      isBookmarked: false,
-    },
-    {
-      id: 7,
-      title: "Art for Change",
-      image: "https://via.placeholder.com/400x200",
-      progress: 90,
-      goal: 5000,
-      type: "Art",
-      isBookmarked: false,
-    },
-    {
-      id: 8,
-      title: "Youth Sports Program",
-      image: "https://via.placeholder.com/400x200",
-      progress: 25,
-      goal: 10000,
-      type: "Sports",
-      isBookmarked: false,
-    },
-    {
-      id: 9,
-      title: "Healthcare Access",
-      image: "https://via.placeholder.com/400x200",
-      progress: 65,
-      goal: 25000,
-      type: "Health",
-      isBookmarked: false,
-    },
-    {
-      id: 10,
-      title: "Green Earth Project",
-      image: "https://via.placeholder.com/400x200",
-      progress: 85,
-      goal: 15000,
-      type: "Environment",
-      isBookmarked: false,
-    },
-    {
-      id: 11,
-      title: "Food for the Hungry",
-      image: "https://via.placeholder.com/400x200",
-      progress: 55,
-      goal: 10000,
-      type: "Social",
-      isBookmarked: false,
-    },
-    {
-      id: 12,
-      title: "Renewable Energy Initiative",
-      image: "https://via.placeholder.com/400x200",
-      progress: 75,
-      goal: 30000,
-      type: "Technology",
-      isBookmarked: false,
-    },
-  ]);
-
+  const [campaigns, setCampaigns] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const email = localStorage.getItem("email");
 
-  // Filter campaigns based on search query
-  const filteredCampaigns = campaigns.filter((campaign) =>
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      try {
+        const data = await getCampaigns();
+        setCampaigns(data);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCampaigns();
+  }, []);
+
+  const handleBookmark = async (campaignId) => {
+    try {
+      await toggleBookmark(campaignId, email);
+      setCampaigns(prev => prev.map(camp => 
+        camp._id === campaignId ? {
+          ...camp,
+          isBookmarked: camp.isBookmarked.includes(email) ? 
+            camp.isBookmarked.filter(e => e !== email) : 
+            [...camp.isBookmarked, email]
+        } : camp
+      ));
+    } catch (error) {
+      console.error("Bookmark error:", error);
+    }
+  };
+
+  const filteredCampaigns = campaigns.filter(campaign =>
     campaign.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Function to handle bookmarking
-  const handleBookmark = (id) => {
-    setCampaigns((prevCampaigns) =>
-      prevCampaigns.map((campaign) =>
-        campaign.id === id
-          ? { ...campaign, isBookmarked: !campaign.isBookmarked }
-          : campaign
-      )
-    );
-  };
-
   return (
-    <>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mt-10"></div>
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        <h1 className="text-3xl font-bold mb-8 text-center">
-          Explore Champions
-        </h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
-          {filteredCampaigns.map((campaign) => (
+    <div className="container px-4 py-8 mx-auto ">
+      <h1 className="mb-8 text-3xl font-bold text-center">Explore Champions</h1>
+      <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+
+      {isLoading ? (
+        <CircleLoader />
+      ) : (
+        <Section
+          title="Featured Campaigns"
+          index={currentIndex}
+          total={filteredCampaigns.length}
+          onNext={() => setCurrentIndex(prev => Math.min(prev + 3, filteredCampaigns.length - 1))}
+          onPrev={() => setCurrentIndex(prev => Math.max(prev - 3, 0))}
+        >
+          {filteredCampaigns.slice(currentIndex, currentIndex + 3).map(campaign => (
             <CampaignCard
-              key={campaign.id}
-              title={campaign.title}
-              image={campaign.image}
-              progress={campaign.progress}
-              goal={campaign.goal}
-              type={campaign.type}
-              isBookmarked={campaign.isBookmarked}
-              onBookmark={() => handleBookmark(campaign.id)}
+              key={campaign._id}
+              {...campaign}
+              loggedInEmail={email}
+              isBookmarked={campaign.isBookmarked.includes(email)} // Pass correct isBookmarked value
+              onShowLoginAlert={() => setShowLoginAlert(true)}
+              onBookmark={handleBookmark}
             />
           ))}
-        </div>
-      </div>
-      <Footer />
-    </>
+        </Section>
+      )}
+
+      {showLoginAlert && ReactDOM.createPortal(
+        <div className="modal-overlay fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+          <div className="p-6 text-center bg-white rounded-lg">
+            <h3 className="mb-4 text-xl font-bold">Login Required</h3>
+            <button
+              onClick={() => {
+                setShowLoginAlert(false);
+                window.location.href = "/login";
+              }}
+              className="bg-[#1a1a2e] text-white px-6 py-2 rounded-lg hover:bg-[#16213e]"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>,
+        document.getElementById("modal-root")
+      )}
+    </div>
   );
 };
+
+const Section = ({ title, index, total, onNext, onPrev, children }) => (
+  <div className="px-4 py-12 mx-auto max-w-7xl sm:px-6 lg:px-8">
+    <h2 className="mb-8 text-3xl font-bold text-center">{title}</h2>
+    <div className="relative flex items-center">
+      {index > 0 && <ArrowButton direction="left" onClick={onPrev} />}
+      <motion.div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {children}
+      </motion.div>
+      {total > 3 && index + 3 < total && <ArrowButton direction="right" onClick={onNext} />}
+    </div>
+  </div>
+);
+
+const ArrowButton = ({ direction, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`absolute ${direction === "left" ? "left-[-50px]" : "right-[-50px]"} top-1/2 transform -translate-y-1/2 bg-[#1a1a2e] text-white p-3 rounded-full hover:bg-[#16213e]`}
+    style={{ zIndex: 10 }}
+  >
+    {direction === "left" ? <FaArrowLeft /> : <FaArrowRight />}
+  </button>
+);
 
 export default ExploreChampions;

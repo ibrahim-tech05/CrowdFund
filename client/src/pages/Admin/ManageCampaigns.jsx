@@ -1,35 +1,94 @@
 import React from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import CampaignCard from "../../components/CampaignCard";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
+import { deleteCampaign, getCampaigns } from "../../api/campaign";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const ManageCampaigns = () => {
-  const [campaigns, setCampaigns] = React.useState([
-    {
-      id: 1,
-      title: "Education for All",
-      image: "https://via.placeholder.com/400x200",
-      progress: 60,
-      goal: 5000,
-      type: "Education",
-    },
-    // Add more campaigns dynamically
-  ]);
+  const [campaigns, setCampaigns] = React.useState([]);
+  const loggedInEmail = localStorage.getItem("email"); // Get logged in user's email
+
+  React.useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
+  const fetchCampaigns = async () => {
+    try {
+      const data = await getCampaigns();
+      setCampaigns(data);
+    } catch (error) {
+      toast.error("Failed to load campaigns", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteCampaign(id);
+      setCampaigns(campaigns.filter(campaign => campaign.id !== id));
+      toast.success("Campaign deleted successfully!", {
+        position: "bottom-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    } catch (error) {
+      toast.error("Failed to delete campaign", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
+    }
+  };
 
   return (
-    <>
-      <Navbar userRole="admin" />
+    <div className="min-h-screen bg-[#f6f6f6] text-[#1a1a2e] p-8 ">
+      <div className="mx-auto max-w-7xl">
+        <motion.h1
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 text-4xl font-bold text-center"
+        >
+          Manage Campaigns
+        </motion.h1>
 
-      <div className="min-h-screen bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white p-8">
-        <h1 className="text-3xl font-bold mb-8">Manage Campaigns</h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {campaigns.map((campaign) => (
-            <CampaignCard key={campaign.id} {...campaign} />
-          ))}
-        </div>
+        <AnimatePresence>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {campaigns.map((campaign) => (
+              <motion.div
+                key={campaign.id}
+                layout
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.5 }}
+                transition={{ duration: 0.3 }}
+              >
+                <CampaignCard
+                  {...campaign}
+                  onDelete={handleDelete}
+                  loggedInEmail={loggedInEmail}
+                  creatorEmail={campaign.creatorEmail} // Ensure your API returns creatorEmail
+                />
+              </motion.div>
+            ))}
+          </div>
+        </AnimatePresence>
+
+        {campaigns.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-16 text-xl text-center text-gray-400"
+          >
+            No campaigns found. Create your first campaign!
+          </motion.div>
+        )}
       </div>
-      <Footer />
-    </>
+    </div>
   );
 };
 

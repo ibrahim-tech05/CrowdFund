@@ -1,46 +1,39 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import CampaignCard from "../../components/CampaignCard";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
+import { getSavedCampaignsByEmail } from "../../api/campaign";
 
 const BackerSaved = () => {
-  const [savedCampaigns, setSavedCampaigns] = React.useState([
-    {
-      id: 1,
-      title: "Education for All",
-      image: "https://via.placeholder.com/400x200",
-      progress: 60,
-      goal: 5000,
-      type: "Education",
-      isBookmarked: true,
-    },
-    // Add more saved campaigns dynamically
-  ]);
+  const [savedCampaigns, setSavedCampaigns] = useState([]);
+
+  const email = localStorage.getItem("email");
+
+  useEffect(() => {
+    const fetchSavedCampaigns = async () => {
+      try {
+        const data = await getSavedCampaignsByEmail(email);
+        setSavedCampaigns(data);
+      } catch (error) {
+        console.error("Error fetching saved campaigns:", error);
+      }
+    };
+    fetchSavedCampaigns();
+  }, [email]);
 
   return (
-    <>
-      <Navbar userRole="backer" />
-
-      <div className="min-h-screen bg-white  p-8 mt-20">
-        <h1 className="text-4xl font-bold mb-8 text-center text-[#1a1a2e]">
-          Saved Campaigns
-        </h1>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {savedCampaigns.map((campaign) => (
-            <CampaignCard
-              key={campaign.id}
-              {...campaign}
-              onBookmark={() =>
-                setSavedCampaigns((prev) =>
-                  prev.filter((c) => c.id !== campaign.id)
-                )
-              }
-            />
-          ))}
-        </div>
+    <div className="min-h-screen p-8 mt-20 bg-white">
+      <h1 className="text-4xl font-bold mb-8 text-center text-[#1a1a2e]">Saved Campaigns</h1>
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {savedCampaigns.map(campaign => (
+          <CampaignCard
+            key={campaign._id}
+            {...campaign}
+            loggedInEmail={email}
+            onShowLoginAlert={() => setShowLoginAlert(true)}
+          />
+        ))}
       </div>
-      <Footer />
-    </>
+
+    </div>
   );
 };
 

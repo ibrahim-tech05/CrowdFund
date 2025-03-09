@@ -1,145 +1,147 @@
-import { useState } from "react";
-import Navbar from "../../components/Navbar";
-import Footer from "../../components/Footer";
-import SearchBar from "../../components/SearchBar";
-import CampaignCard from "../../components/CampaignCard";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import Ed1 from "../../assets/Ed1.jpeg";
-import Fd1 from "../../assets/fund1.jpg";
-import Hd1 from "../../assets/Health1.jpeg";
+import CampaignCard from "../../components/CampaignCard";
+import StoryCard from "../../components/StoryCard";
+import SearchBar from "../../components/SearchBar";
+import CircleLoader from "../../components/CircleLoader";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { getCampaigns, toggleBookmark } from "../../api/campaign";
+import { getSuccessStories } from "../../api/successStory";
 
 const BackerHome = () => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [bookmarkedCampaigns, setBookmarkedCampaigns] = useState([]);
+  const [campaigns, setCampaigns] = useState([]);
+  const [successStories, setSuccessStories] = useState([]);
   const [campaignIndex, setCampaignIndex] = useState(0);
+  const [trendingIndex, setTrendingIndex] = useState(0);
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showLoginAlert, setShowLoginAlert] = useState(false);
+  const email = localStorage.getItem("email");
+  const name = localStorage.getItem("name");
 
-  const toggleBookmark = (title) => {
-    if (bookmarkedCampaigns.includes(title)) {
-      setBookmarkedCampaigns(
-        bookmarkedCampaigns.filter((item) => item !== title)
-      );
-    } else {
-      setBookmarkedCampaigns([...bookmarkedCampaigns, title]);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const campaignsData = await getCampaigns();
+        const storiesData = await getSuccessStories();
+        setCampaigns(campaignsData);
+        setSuccessStories(storiesData);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleBookmark = async (campaignId) => {
+    try {
+      await toggleBookmark(campaignId, email);
+      setCampaigns(prev => prev.map(camp => 
+        camp._id === campaignId ? {
+          ...camp,
+          isBookmarked: camp.isBookmarked.includes(email) ? 
+            camp.isBookmarked.filter(e => e !== email) : 
+            [...camp.isBookmarked, email]
+        } : camp
+      ));
+    } catch (error) {
+      console.error("Error toggling bookmark:", error);
     }
   };
 
-  const campaigns = [
-    {
-      title: "Education for All",
-      image: Ed1,
-      progress: 60,
-      goal: 10000,
-      type: "education",
-    },
-    {
-      title: "Startup Funding",
-      image: Fd1,
-      progress: 30,
-      goal: 50000,
-      type: "funding",
-    },
-    {
-      title: "Health Awareness",
-      image: Hd1,
-      progress: 80,
-      goal: 20000,
-      type: "health",
-    },
-    {
-      title: "Animal Rescue",
-      image: Hd1,
-      progress: 45,
-      goal: 15000,
-      type: "animals",
-    },
-    {
-      title: "Art Project",
-      image: Ed1,
-      progress: 70,
-      goal: 25000,
-      type: "art",
-    },
-  ];
-  const filteredCampaigns = campaigns.filter((campaign) =>
+  const filteredCampaigns = campaigns.filter(campaign =>
     campaign.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const visibleCampaigns = filteredCampaigns.slice(
-    campaignIndex,
-    campaignIndex + 3
-  );
-  const handleCampaignNext = () => {
-    if (campaignIndex + 3 < filteredCampaigns.length) {
-      setCampaignIndex(campaignIndex + 3);
-    }
-  };
-
-  const handleCampaignPrev = () => {
-    if (campaignIndex - 3 >= 0) {
-      setCampaignIndex(campaignIndex - 3);
-    }
-  };
+  const trendingCampaigns = [...campaigns]
+    .sort((a, b) => (b.progress / b.goal) - (a.progress / a.goal))
+    .slice(0, 5);
 
   return (
-    <>
-      <Navbar userRole="backer" />
-
-      <div className="min-h-screen bg-white text-[#1a1a2e] p-8 mt-20">
-        <h1 className="text-3xl font-bold mb-8">Welcome Back, Backer!</h1>
-        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-        {/* Campaigns Section */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-3xl font-bold text-center mb-8">
-            Ongoing Campaigns
-          </h2>
-
-          <div className="relative flex items-center">
-            {/* Left Arrow */}
-            {campaignIndex > 0 && (
-              <button
-                onClick={handleCampaignPrev}
-                className="absolute left-[-50px] top-1/2 transform -translate-y-1/2 bg-[#1a1a2e] text-white p-3 rounded-full hover:bg-[#16213e] transition duration-300"
-                style={{ zIndex: 10 }}
-              >
-                <FaArrowLeft />
-              </button>
-            )}
-
-            {/* Campaign Cards */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full"
-            >
-              {visibleCampaigns.map((campaign, index) => (
-                <CampaignCard
-                  key={index}
-                  {...campaign}
-                  isBookmarked={bookmarkedCampaigns.includes(campaign.title)}
-                  onBookmark={() => toggleBookmark(campaign.title)}
-                />
-              ))}
-            </motion.div>
-
-            {/* Right Arrow */}
-            {filteredCampaigns.length > 3 &&
-              campaignIndex + 3 < filteredCampaigns.length && (
-                <button
-                  onClick={handleCampaignNext}
-                  className="absolute right-[-50px] top-1/2 transform -translate-y-1/2 bg-[#1a1a2e] text-white p-3 rounded-full hover:bg-[#16213e] transition duration-300"
-                  style={{ zIndex: 10 }}
-                >
-                  <FaArrowRight />
-                </button>
-              )}
-          </div>
+    <div className="min-h-screen bg-[#f6f6f6] text-[#1a1a2e] p-8 ">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-12 text-center">
+          <h1 className="mb-4 text-5xl font-bold">Welcome, {name || "Backer"}!</h1>
         </div>
+
+        <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+
+        <Section
+          title="Ongoing Campaigns"
+          index={campaignIndex}
+          total={filteredCampaigns.length}
+          onNext={() => setCampaignIndex(prev => prev + 3 < filteredCampaigns.length ? prev + 3 : prev)}
+          onPrev={() => setCampaignIndex(prev => prev >= 3 ? prev - 3 : prev)}
+        >
+          {filteredCampaigns.slice(campaignIndex, campaignIndex + 3).map(campaign => (
+            <CampaignCard
+              key={campaign._id}
+              {...campaign}
+              loggedInEmail={email}
+              isBookmarked={campaign.isBookmarked.includes(email)} // Pass correct isBookmarked value
+              onShowLoginAlert={() => setShowLoginAlert(true)}
+              onBookmark={handleBookmark}
+            />
+          ))}
+        </Section>
+
+        <Section
+          title="Trending Campaigns"
+          index={trendingIndex}
+          total={trendingCampaigns.length}
+          onNext={() => setTrendingIndex(prev => prev + 3 < trendingCampaigns.length ? prev + 3 : prev)}
+          onPrev={() => setTrendingIndex(prev => prev >= 3 ? prev - 3 : prev)}
+        >
+          {trendingCampaigns.slice(trendingIndex, trendingIndex + 3).map(campaign => (
+            <CampaignCard
+              key={campaign._id}
+              {...campaign}
+              loggedInEmail={email}
+              isBookmarked={campaign.isBookmarked.includes(email)} // Pass correct isBookmarked value
+              onShowLoginAlert={() => setShowLoginAlert(true)}
+              onBookmark={handleBookmark}
+            />
+          ))}
+        </Section>
+
+        <Section
+          title="Success Stories"
+          index={storyIndex}
+          total={successStories.length}
+          onNext={() => setStoryIndex(prev => prev + 3 < successStories.length ? prev + 3 : prev)}
+          onPrev={() => setStoryIndex(prev => prev >= 3 ? prev - 3 : prev)}
+        >
+          {successStories.slice(storyIndex, storyIndex + 3).map(story => (
+            <StoryCard key={story._id} {...story} />
+          ))}
+        </Section>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 };
+
+const Section = ({ title, index, total, onNext, onPrev, children }) => (
+  <div className="px-4 py-12">
+    <h2 className="mb-8 text-3xl font-bold text-center">{title}</h2>
+    <div className="relative flex items-center">
+      {index > 0 && <ArrowButton direction="left" onClick={onPrev} />}
+      <motion.div className="grid w-full grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        {children}
+      </motion.div>
+      {total > 3 && index + 3 < total && <ArrowButton direction="right" onClick={onNext} />}
+    </div>
+  </div>
+);
+
+const ArrowButton = ({ direction, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`absolute ${direction === "left" ? "left-[-50px]" : "right-[-50px]"} top-1/2 transform -translate-y-1/2 bg-[#1a1a2e] text-white p-3 rounded-full hover:bg-[#16213e]`}
+    style={{ zIndex: 10 }}
+  >
+    {direction === "left" ? <FaArrowLeft /> : <FaArrowRight />}
+  </button>
+);
 
 export default BackerHome;

@@ -3,8 +3,7 @@ import { FaSearch } from "react-icons/fa";
 const SearchBar = ({ searchQuery, setSearchQuery }) => {
   return (
     <div className="py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-3xl font-bold text-center mb-8">Find a Campaign</h2>
+      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
         <div className="flex items-center justify-center">
           <input
             type="text"

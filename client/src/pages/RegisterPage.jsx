@@ -3,11 +3,11 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useNavigate } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
+import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import { register as registerUser } from "../api/api"; // Rename API function
+import { motion } from "framer-motion";
+import { FiUser, FiMail, FiLock, FiAlertCircle } from "react-icons/fi";
+import { register as registerUser } from "../api/auth"; // Rename API function
 
 // Schema for form validation
 const schema = yup.object().shape({
@@ -33,13 +33,15 @@ const RegisterPage = () => {
   const [error, setError] = useState("");
 
   const {
-    register: formRegister, // Rename hook form's register function
+    register: formRegister,
     handleSubmit,
     reset,
+    watch, // Add this line
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
   });
+  
 
   const onSubmit = async (formData) => {
     console.log("Form Data:", formData); // Debugging: Log form data
@@ -70,101 +72,185 @@ const RegisterPage = () => {
     }
   };
 
+  const passwordStrength = (password) => {
+    if (!password) return 0;
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[a-z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[@$!%*?&]/.test(password)) strength++;
+    return strength;
+  };
+  
+
   return (
-    <div>
-      <Navbar userRole="guest" />
-      <ToastContainer />
-      <div className="min-h-screen flex items-center justify-center bg-[#f6f6f6] mt-20">
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md"
-        >
-          <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-            Register
-          </h2>
-          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-          <div className="mb-4">
-            <label className="block text-gray-700">Name</label>
-            <input
-              type="text"
-              {...formRegister("name")}
-              className="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-            />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="min-h-screen bg-gradient-to-br from-[#f6f6f6] to-[#eaeaea] flex items-center justify-center "
+    >
+      <motion.form
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.4 }}
+        onSubmit={handleSubmit(onSubmit)}
+        className="w-full max-w-3xl px-8 py-10 my-10 bg-white border shadow-2xl rounded-2xl backdrop-blur-lg border-white/20"
+      >
+        <h2 className="mb-8 text-3xl font-bold text-center text-[#1a1a2e]">
+          Create Account
+        </h2>
+
+        <div className="space-y-6">
+          {/* Name Field */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <label className="block mb-2 text-sm font-medium text-gray-600">
+              Name
+            </label>
+            <div className="relative">
+              <FiUser className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+              <input
+                type="text"
+                {...formRegister("name")}
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a1a2e] focus:ring-2 focus:ring-[#1a1a2e]/20 transition-all"
+              />
+            </div>
             {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+              <motion.p
+                initial={{ y: -5, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="flex items-center mt-1 text-sm text-red-500"
+              >
+                <FiAlertCircle className="mr-1" /> {errors.name.message}
+              </motion.p>
             )}
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <label className="block mb-2 text-sm font-medium text-gray-600">
+            Email Address
+          </label>
+          <div className="relative">
+            <FiMail className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
             <input
               type="email"
               {...formRegister("email")}
-              className="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a1a2e] focus:ring-2 focus:ring-[#1a1a2e]/20 transition-all"
             />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.email.message}
-              </p>
-            )}
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Password</label>
-            <input
-              type="password"
-              {...formRegister("password")}
-              className="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
-            />
+          {errors.email && (
+            <motion.p
+              initial={{ y: -5, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="flex items-center mt-1 text-sm text-red-500"
+            >
+              <FiAlertCircle className="mr-1" /> {errors.email.message}
+            </motion.p>
+          )}
+        </motion.div>
+
+          {/* Password Strength Meter */}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+            <label className="block mb-2 text-sm font-medium text-gray-600">
+              Password
+            </label>
+            <div className="relative">
+              <FiLock className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+              <input
+                type="password"
+                {...formRegister("password")}
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a1a2e] focus:ring-2 focus:ring-[#1a1a2e]/20 transition-all"
+              />
+            </div>
+            <div className="flex gap-1 mt-2">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`h-2 w-full rounded-full transition-all ${
+                    passwordStrength(watch("password")) > i
+                      ? "bg-green-500"
+                      : "bg-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.password.message}
-              </p>
+              <motion.p
+                initial={{ y: -5, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="flex items-center mt-1 text-sm text-red-500"
+              >
+                <FiAlertCircle className="mr-1" /> {errors.password.message}
+              </motion.p>
             )}
-          </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Confirm Password</label>
+          </motion.div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <label className="block mb-2 text-sm font-medium text-gray-600">
+            Confirm Password
+          </label>
+          <div className="relative">
+            <FiLock className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" />
             <input
               type="password"
               {...formRegister("confirmPassword")}
-              className="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-[#1a1a2e] focus:ring-2 focus:ring-[#1a1a2e]/20 transition-all"
             />
-            {errors.confirmPassword && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.confirmPassword.message}
-              </p>
-            )}
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">Role</label>
+          {errors.confirmPassword && (
+            <motion.p
+              initial={{ y: -5, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="flex items-center mt-1 text-sm text-red-500"
+            >
+              <FiAlertCircle className="mr-1" /> {errors.confirmPassword.message}
+            </motion.p>
+          )}
+        </motion.div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <label className="block mb-2 text-sm font-medium text-gray-600">
+            Select Role
+          </label>
+          <div className="relative">
             <select
               {...formRegister("role")}
-              className="w-full px-4 py-2 mt-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1a1a2e]"
+              className="w-full pl-4 pr-8 py-3 rounded-lg border border-gray-200 focus:border-[#1a1a2e] focus:ring-2 focus:ring-[#1a1a2e]/20 appearance-none bg-no-repeat bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNNyAxMGw1IDUgNS01eiIvPjwvc3ZnPg==')] bg-[position:right_0.5rem_center] bg-[size:1.5em]"
             >
-              <option value="">Select Role</option>
+              <option value="">Select Your Role</option>
               <option value="backer">Backer</option>
               <option value="fundraiser">Fundraiser</option>
             </select>
-            {errors.role && (
-              <p className="text-red-500 text-sm mt-1">{errors.role.message}</p>
-            )}
           </div>
-          <button
+          {errors.role && (
+            <motion.p
+              initial={{ y: -5, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="flex items-center mt-1 text-sm text-red-500"
+            >
+              <FiAlertCircle className="mr-1" /> {errors.role.message}
+            </motion.p>
+          )}
+        </motion.div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
-            className="w-full bg-[#1a1a2e] text-white py-2 px-4 rounded-lg hover:bg-[#16213e] transition duration-300"
+            className="w-full py-3 px-6 bg-gradient-to-r from-[#1a1a2e] to-[#16213e] text-white rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all"
           >
-            Register
-          </button>
-          <div className="mt-4 text-center">
-            <p className="text-gray-600">
-              Already have an account?{" "}
-              <a href="/login" className="text-[#1a1a2e] hover:underline">
-                Login here
-              </a>
-            </p>
-          </div>
-        </form>
-      </div>
-      <Footer />
-    </div>
+            Create Account
+          </motion.button>
+        </div>
+
+        <p className="mt-6 text-center text-gray-600">
+          Already have an account?{" "}
+          <a
+            href="/login"
+            className="text-[#1a1a2e] font-semibold hover:underline underline-offset-4"
+          >
+            Sign In
+          </a>
+        </p>
+      </motion.form>
+    </motion.div>
   );
 };
 

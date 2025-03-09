@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { FaPhone, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
-import Footer from "../../components/Footer";
+import { sendContactMessage } from "../../api/contact";
+import CircleLoader from "../../components/CircleLoader";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -9,22 +10,53 @@ const fadeInUp = {
 };
 
 const ContactUs = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      await sendContactMessage(formData);
+      setSuccess(true);
+      setFormData({ name: "", email: "", message: "" }); // Clear form
+    } catch (error) {
+      setError("Failed to send message. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <>
-      <div className="min-h-screen bg-white text-[#1a1a2e] px-6 md:px-20 py-12 mt-20">
+      <div className="min-h-screen bg-white text-[#1a1a2e] px-6 md:px-20 py-12 ">
         <motion.div
           initial="hidden"
           animate="visible"
           variants={fadeInUp}
           className="text-center"
         >
-          <h1 className="text-5xl font-bold mb-4">Contact Us</h1>
-          <p className="text-xl mb-8 text-gray-600">
+          <h1 className="mb-4 text-5xl font-bold">Contact Us</h1>
+          <p className="mb-8 text-xl text-gray-600">
             We’re here to help! Get in touch with CrowdFund Support.
           </p>
         </motion.div>
 
-        <div className="container mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+        <div className="container grid grid-cols-1 gap-8 px-4 py-12 mx-auto text-center md:grid-cols-3">
           {[
             {
               icon: (
@@ -53,21 +85,21 @@ const ContactUs = () => {
               initial="hidden"
               animate="visible"
               variants={fadeInUp}
-              className="bg-gray-50 p-6 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300"
+              className="p-6 transition-shadow duration-300 rounded-lg shadow-lg bg-gray-50 hover:shadow-xl"
             >
               {contact.icon}
-              <h3 className="text-2xl font-bold mb-4">{contact.title}</h3>
+              <h3 className="mb-4 text-2xl font-bold">{contact.title}</h3>
               <p className="text-gray-600">{contact.info}</p>
             </motion.div>
           ))}
         </div>
 
-        <div className="container mx-auto px-4 py-16 text-center">
+        <div className="container px-4 py-16 mx-auto text-center">
           <motion.h2
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
-            className="text-3xl font-bold mb-8"
+            className="mb-8 text-3xl font-bold"
           >
             Send Us a Message
           </motion.h2>
@@ -75,34 +107,54 @@ const ContactUs = () => {
             initial="hidden"
             animate="visible"
             variants={fadeInUp}
-            className="max-w-2xl mx-auto bg-gray-50 p-8 rounded-lg shadow-lg"
+            className="max-w-2xl p-8 mx-auto rounded-lg shadow-lg bg-gray-50"
+            onSubmit={handleSubmit}
           >
             <input
               type="text"
+              name="name"
               placeholder="Your Name"
-              className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none"
+              value={formData.name}
+              onChange={handleChange}
+              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none"
+              required
             />
             <input
               type="email"
+              name="email"
               placeholder="Your Email"
-              className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none"
+              value={formData.email}
+              onChange={handleChange}
+              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none"
+              required
             />
             <textarea
               rows="4"
+              name="message"
               placeholder="Your Message"
-              className="w-full mb-4 px-4 py-2 border rounded-lg focus:outline-none"
+              value={formData.message}
+              onChange={handleChange}
+              className="w-full px-4 py-2 mb-4 border rounded-lg focus:outline-none"
+              required
             ></textarea>
+            {error && <p className="mb-4 text-red-500">{error}</p>}
+            {success && (
+              <p className="mb-4 text-green-500">
+                Message sent successfully!
+              </p>
+            )}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-[#1a1a2e] text-white px-8 py-3 rounded-full hover:bg-[#16213e] transition duration-300"
+              type="submit"
+              disabled={isLoading}
             >
-              Send Message
+              {isLoading ? <CircleLoader /> : "Send Message"}
             </motion.button>
           </motion.form>
         </div>
       </div>
-      <Footer />
     </>
   );
 };
